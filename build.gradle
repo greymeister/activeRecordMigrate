@@ -1,0 +1,105 @@
+import org.jruby.Main as JRuby
+
+apply plugin: 'maven' 
+apply plugin: 'java'
+
+sourceCompatibility = 1.5
+targetCompatibility = 1.5
+
+manifest.mainAttributes("Main-Class": "org.jruby.Main")
+
+artifact='cloudprint-ipp-db'
+group='com.lexmark.cloudprint'
+version = '0.1-SNAPSHOT'
+
+gemsDir = './build/gems'
+
+// Software dependency versions
+jrubyVersion = '1.5.6'
+
+
+//defaultTasks 'clean', 'build', 'test', 'groovyDoc', 'install'
+ 
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'org.jruby.embed:jruby-embed:0.1.2'
+    classpath 'com.h2database:h2:1.1.107'
+  }
+}
+
+dependencies {
+  runtime "org.jruby:jruby-complete:${jrubyVersion}"
+}
+
+repositories {
+    mavenCentral()
+    mavenRepo(urls: 'http://repository.springsource.com/maven/bundles/release')
+    mavenRepo(urls: 'http://repository.springsource.com/maven/bundles/external')
+    mavenRepo(urls: 'http://repository.codehaus.org')
+}
+
+processResources.dependsOn 'gems'
+
+sourceSets {
+  main {
+    resources {
+      srcDir './build/gems'
+    }
+  }
+}
+
+// Creates a jar containing the jruby-all jar with the gemsets we need
+jar {
+  from configurations.runtime.collect {it.isDirectory() ? it : zipTree(it) }
+
+}
+
+task gems << {
+  if(!new File(gemsDir).exists()) {
+    def configSettings = '--config-file gemrc.yml' 
+    runJRuby("gem install jruby-openssl activerecord activerecord-jdbcsqlite3-adapter rake mongrel $configSettings")
+    runJRuby("gem install activerecord-jdbch2-adapter $configSettings")    
+  }
+}
+
+task(listGems, dependsOn:gems, type: JavaExec) {
+  main = 'org.jruby.Main'
+  classpath = sourceSets.main.runtimeClasspath
+  args = ['-S', 'gem', 'list',  '--config-file', 'gemrc.yml']
+  systemProperty 'GEM_PATH', "$gemsDir"
+}
+
+task(migrate, dependsOn:gems, type: JavaExec) {
+  main = 'org.jruby.Main'
+  classpath = sourceSets.main.runtimeClasspath
+  args = ['-S', 'rake', 'migrate']
+}
+ 
+// Run app from gradle
+task(runDb, dependsOn:migrate, type: JavaExec) {
+  main = 'org.h2.tools.Server'
+  classpath = buildscript.configurations.classpath
+  jvmArgs = ['-server', '-Xmx512m', '-Xms512m', "-Dh2.bindAddress=0.0.0.0"]
+  args = ['-baseDir','.','-tcp','-tcpAllowOthers','-web','-webAllowOthers']
+}
+
+/*task(connect, dependsOn:gems, type: JavaExec) {
+  main = 'org.jruby.Main'
+  classpath = sourceSets.main.runtimeClasspath
+  args = ['-S', 'connect.rb', "-Dgem.path='$gemsDir'"]
+  //systemProperty 'gem.path', "$gemsDir"
+}
+*/
+
+def runJRuby(cmdArg) {
+  def cmd = "-S $cmdArg"
+  println "Running JRuby: $cmd"
+  Thread.currentThread().setContextClassLoader(JRuby.class.classLoader)  
+  JRuby.main("$cmd".split())
+}
+
+
+

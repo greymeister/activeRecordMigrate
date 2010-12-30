@@ -1,0 +1,12 @@
+#JavaDB/DerbyDB
+development:
+  adapter: jdbch2
+  username: sa
+  database: db/bwah_dev.db
+  password: password
+
+
+development_poop:
+  adapter: jdbcsqlite3
+  database: db/development.sqlite3
+  timeout: 5000

@@ -79,10 +79,18 @@ task(listGems, dependsOn:classes, type: JavaExec) {
   systemProperty 'GEM_PATH', "$gemsDir"
 }
 
-task(migrate, dependsOn:classes, type: JavaExec) {
+// Helper class to set the database property on the project
+// By default, it will be development
+task(migrateHelper, dependsOn:classes) {
+  if(!project.hasProperty('database'))
+    project.setProperty('database', 'development')
+}
+
+// Migrate the db
+task(migrate, dependsOn:migrateHelper, type: JavaExec) {
   main = 'org.jruby.Main'
   classpath = sourceSets.main.runtimeClasspath
-  args = ['-S', 'rake', 'migrate']
+  args = ['-S', 'rake', 'migrate', "RAILS_ENV=${project.getProperty('database')}"]
 }
  
 // Run app from gradle
@@ -92,14 +100,6 @@ task(runDb, dependsOn:migrate, type: JavaExec) {
   jvmArgs = ['-server', '-Xmx512m', '-Xms512m', "-Dh2.bindAddress=0.0.0.0"]
   args = ['-baseDir','.','-tcp','-tcpAllowOthers','-web','-webAllowOthers']
 }
-
-/*task(connect, dependsOn:gems, type: JavaExec) {
-  main = 'org.jruby.Main'
-  classpath = sourceSets.main.runtimeClasspath
-  args = ['-S', 'connect.rb', "-Dgem.path='$gemsDir'"]
-  //systemProperty 'gem.path', "$gemsDir"
-}
-*/
 
 def runJRuby(cmdArg) {
   def cmd = "-S $cmdArg"

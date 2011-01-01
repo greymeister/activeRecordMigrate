@@ -12,7 +12,10 @@ artifact='cloudprint-ipp-db'
 group='com.lexmark.cloudprint'
 version = '0.1-SNAPSHOT'
 
+// Build properties
 gemsDir = './build/gems'
+rubyGems = ['jruby-openssl','activerecord','activerecord-jdbcsqlite3-adapter',
+            'rake','mongrel','activerecord-jdbch2-adapter']
 
 // Software dependency versions
 jrubyVersion = '1.5.6'
@@ -46,7 +49,7 @@ processResources.dependsOn 'gems'
 sourceSets {
   main {
     resources {
-      srcDir './build/gems'
+      srcDir "$gemsDir"
     }
   }
 }
@@ -58,21 +61,25 @@ jar {
 }
 
 task gems << {
-  if(!new File(gemsDir).exists()) {
-    def configSettings = '--config-file gemrc.yml' 
-    runJRuby("gem install jruby-openssl activerecord activerecord-jdbcsqlite3-adapter rake mongrel $configSettings")
-    runJRuby("gem install activerecord-jdbch2-adapter $configSettings")    
+  def configSettings = '--config-file gemrc.yml' 
+  rubyGems.each { gemName ->
+    if(!hasGem(gemName))
+      runJRuby("gem install $gemName $configSettings")    
   }
 }
 
-task(listGems, dependsOn:gems, type: JavaExec) {
+def hasGem(gemName) {
+  new File("${gemsDir}/gems").list().find {it.startsWith(gemName) } != null
+}
+
+task(listGems, dependsOn:classes, type: JavaExec) {
   main = 'org.jruby.Main'
   classpath = sourceSets.main.runtimeClasspath
   args = ['-S', 'gem', 'list',  '--config-file', 'gemrc.yml']
   systemProperty 'GEM_PATH', "$gemsDir"
 }
 
-task(migrate, dependsOn:gems, type: JavaExec) {
+task(migrate, dependsOn:classes, type: JavaExec) {
   main = 'org.jruby.Main'
   classpath = sourceSets.main.runtimeClasspath
   args = ['-S', 'rake', 'migrate']

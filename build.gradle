@@ -8,8 +8,8 @@ targetCompatibility = 1.5
 
 manifest.mainAttributes("Main-Class": "org.jruby.Main")
 
-artifact='cloudprint-ipp-db'
-group='com.lexmark.cloudprint'
+artifact='activeRecordMigrate'
+group='net.greymeister.utils'
 version = '0.1-SNAPSHOT'
 
 // Build properties

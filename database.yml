@@ -1,12 +1,21 @@
-#JavaDB/DerbyDB
+# H2 Database used for development
 development:
   adapter: jdbch2
   username: sa
   database: db/bwah_dev.db
   password: password
 
+# SQL Server Test 
+sqlserver_test:
+  adapter: jdbcmssql
+  driver: net.sourceforge.jtds.jdbc.Driver
+  url: jdbc:jtds:sqlserver://10.20.1.2:1433/Northwind
+  username: dba
+  password: dba123
 
-development_poop:
+
+# Old sqlite db, only used for testing scripts
+dev_sqlite:
   adapter: jdbcsqlite3
   database: db/development.sqlite3
   timeout: 5000

@@ -15,7 +15,7 @@ version = '0.1-SNAPSHOT'
 // Build properties
 gemsDir = './build/gems'
 rubyGems = ['jruby-openssl','activerecord','activerecord-jdbcsqlite3-adapter',
-            'rake','mongrel','activerecord-jdbch2-adapter']
+            'rake','mongrel','activerecord-jdbch2-adapter', 'activerecord-jdbcmssql-adapter']
 
 // Software dependency versions
 jrubyVersion = '1.5.6'
@@ -81,13 +81,20 @@ task(listGems, dependsOn:classes, type: JavaExec) {
 
 // Helper class to set the database property on the project
 // By default, it will be development
-task(migrateHelper, dependsOn:classes) {
+task(envHelper, dependsOn:classes) {
   if(!project.hasProperty('database'))
     project.setProperty('database', 'development')
 }
 
+// Do a schema export
+task(exportSchema, dependsOn:envHelper, type: JavaExec) {
+  main = 'org.jruby.Main'
+  classpath = sourceSets.main.runtimeClasspath
+  args = ['-S', 'rake', 'schema_export', "RAILS_ENV=${project.getProperty('database')}"]
+}
+
 // Migrate the db
-task(migrate, dependsOn:migrateHelper, type: JavaExec) {
+task(migrate, dependsOn:envHelper, type: JavaExec) {
   main = 'org.jruby.Main'
   classpath = sourceSets.main.runtimeClasspath
   args = ['-S', 'rake', 'migrate', "RAILS_ENV=${project.getProperty('database')}"]
@@ -106,6 +113,15 @@ def runJRuby(cmdArg) {
   println "Running JRuby: $cmd"
   Thread.currentThread().setContextClassLoader(JRuby.class.classLoader)  
   JRuby.main("$cmd".split())
+}
+
+clean.dependsOn 'cleanDb'
+
+// Delete database files
+task cleanDb <<  {
+   ant.delete() {
+        fileset(dir: 'db', includes: '*.db')        
+    }
 }
 
 
